@@ -1,41 +1,69 @@
 const express = require('express');
 
+const bodyParser = require('body-parser');
+
+const fs = require('fs')
+
+const joi = require('joi');
+
 const app = express();
+const jsonParser = bodyParser.json();
 
-const users = [];
 
+
+
+//const users = [];
 let uniqueID = 0;
-app.use(express.json())
 
+const userShema = joi.object({
+    firstName: joi.string().min(2).required(),
+    secondName: joi.string().min(2).required(),
+    age: joi.number().min(0).max(150).required(),
+    city: joi.string().min(2)
+})
+app.use(express.static(__dirname + '/public'));
+//get all users
 app.get('/users', (req, res) => {
-    res.send({ users })
+    const content = fs.readFileSync('users.json', 'utf8');
+    const users = JSON.parse(content);
+    res.send(users)
 })
 
 app.get('/users/:id', (req, res) => {
     const userID = +req.params.id;
-
+    
+    const content = fs.readFileSync('users.json', 'utf8');
+    const users = JSON.parse(content);
     const user = users.find((user) => user.id === userID);
-
-    if(user) {       
-        res.send({ user });
+        if(user) {       
+        res.send(user);
     } else {
         res.status(404);
         res.send({user: null});
     }
 })
 
-app.post('/users', (req, res) => {
-    uniqueID += 1;
+app.post('/users', jsonParser, (req, res) => {
+    ++uniqueID;
+    let content = fs.readFileSync('users.json', 'utf8');
+    const users = JSON.parse(content);
+    
     users.push({
         id: uniqueID,
         ...req.body
 
     })
-    res.send({ id: uniqueID })
+    content = JSON.stringify(users);
+    fs.writeFileSync('users.json', content);
+    res.send('added')
 })
 
 
 app.put('/users/:id', (req, res) =>{
+    const result = userShema.validate(req.body);
+    if(result.error){
+        return res.status(404).send({error: result.error.details});
+    }
     const userID = +req.params.id;
 
     const user = users.find((user) => user.id === userID);
@@ -46,7 +74,7 @@ app.put('/users/:id', (req, res) =>{
         user.secondName = secondName;
         user.age = age;
         user.city = city;
-        res.send({ user });
+        res.send(user);
     } else {
         res.status(404);
         res.send({user: null});
