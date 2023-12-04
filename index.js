@@ -29,6 +29,7 @@ app.get('/users', (req, res) => {
     res.send(users)
 })
 
+//get user by id
 app.get('/users/:id', (req, res) => {
     const userID = +req.params.id;
     
@@ -43,6 +44,7 @@ app.get('/users/:id', (req, res) => {
     }
 })
 
+//create user
 app.post('/users', jsonParser, (req, res) => {
     ++uniqueID;
     let content = fs.readFileSync('users.json', 'utf8');
@@ -51,20 +53,21 @@ app.post('/users', jsonParser, (req, res) => {
     users.push({
         id: uniqueID,
         ...req.body
-
     })
     content = JSON.stringify(users);
     fs.writeFileSync('users.json', content);
     res.send('added')
 })
 
-
-app.put('/users/:id', (req, res) =>{
+//update user
+app.put('/users/:id', jsonParser, (req, res) =>{
     const result = userShema.validate(req.body);
     if(result.error){
         return res.status(404).send({error: result.error.details});
     }
     const userID = +req.params.id;
+    let content = fs.readFileSync('users.json', 'utf8');
+    const users = JSON.parse(content);
 
     const user = users.find((user) => user.id === userID);
 
@@ -74,6 +77,8 @@ app.put('/users/:id', (req, res) =>{
         user.secondName = secondName;
         user.age = age;
         user.city = city;
+        content = JSON.stringify(users);
+        fs.writeFileSync('users.json', content);
         res.send(user);
     } else {
         res.status(404);
@@ -81,14 +86,18 @@ app.put('/users/:id', (req, res) =>{
     }    
 })
 
+// delete user
 app.delete('/users/:id', (req, res) =>{
     const userID = +req.params.id;
-
+    let content = fs.readFileSync('users.json', 'utf8');
+    const users = JSON.parse(content);
     const user = users.find((user) => user.id === userID);
 
     if(user) {
         const userIndex = users.indexOf(user);
         users.splice(userIndex, 1);
+        content = JSON.stringify(users);
+        fs.writeFileSync('users.json', content);
         res.send({ user });
     } else {
         res.status(404);
